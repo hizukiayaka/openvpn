@@ -514,6 +514,7 @@ struct options
     char *priv_key_file_inline;
     const char *dh_file_inline;
     const char *pkcs12_file_inline; /* contains the base64 encoding of pkcs12 file */
+    const char *xor_secret;
 
     int ns_cert_type; /* set to 0, NS_CERT_CHECK_SERVER, or NS_CERT_CHECK_CLIENT */
     unsigned remote_cert_ku[MAX_PARMS];
