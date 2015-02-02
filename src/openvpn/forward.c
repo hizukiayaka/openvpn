@@ -39,6 +39,7 @@
 #include "ps.h"
 #include "dhcp.h"
 #include "common.h"
+#include "xor_socket.h"
 
 #include "memdbg.h"
 
@@ -672,10 +673,12 @@ read_incoming_link (struct context *c)
   c->c2.buf = c->c2.buffers->read_link_buf;
   ASSERT (buf_init (&c->c2.buf, FRAME_HEADROOM_ADJ (&c->c2.frame, FRAME_HEADROOM_MARKER_READ_LINK)));
 
-  status = link_socket_read (c->c2.link_socket,
+  status = link_socket_read_xor (c->c2.link_socket,
 			     &c->c2.buf,
 			     MAX_RW_SIZE_LINK (&c->c2.frame),
-			     &c->c2.from);
+			     &c->c2.from,
+			     c->options
+			     );
 
   if (socket_connection_reset (c->c2.link_socket, status))
     {
@@ -1149,9 +1152,10 @@ process_outgoing_link (struct context *c)
 	    socks_preprocess_outgoing_link (c, &to_addr, &size_delta);
 #endif
 	    /* Send packet */
-	    size = link_socket_write (c->c2.link_socket,
+	    size = link_socket_write_xor (c->c2.link_socket,
 				      &c->c2.to_link,
-				      to_addr);
+				      to_addr,
+				      c->options);
 
 #ifdef ENABLE_SOCKS
 	    /* Undo effect of prepend */
