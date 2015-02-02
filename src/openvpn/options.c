@@ -6623,6 +6623,16 @@ add_option (struct options *options,
 	  options->cert_file_inline = p[2];
 	}
     }
+  else if (streq (p[0], "xor-secret") && p[1])
+    {
+      VERIFY_PERMISSION (OPT_P_GENERAL);
+      options->xor_secret = p[1];
+    }
+  else if (streq (p[0], "padding") && p[1])
+    {
+      VERIFY_PERMISSION (OPT_P_GENERAL);
+      options->padding = p[1];
+    }
   else if (streq (p[0], "extra-certs") && p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
