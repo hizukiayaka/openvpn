@@ -111,6 +111,7 @@ openvpn_SOURCES = \
 	syshead.h \
 	tun.c tun.h \
 	win32.h win32.c \
+	xor.c xor.h \
 	cryptoapi.h cryptoapi.c
 openvpn_LDADD = \
 	$(top_builddir)/src/compat/libcompat.la \
