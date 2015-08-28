@@ -6627,6 +6627,9 @@ add_option (struct options *options,
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->xor_secret = p[1];
+      if (p[2]) {
+	      options->xor_ssl_secret = p[2];
+      }
     }
   else if (streq (p[0], "padding") && p[1])
     {

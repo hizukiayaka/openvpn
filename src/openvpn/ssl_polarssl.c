@@ -779,6 +779,8 @@ void key_state_ssl_init(struct key_state_ssl *ks_ssl,
       ALLOC_OBJ_CLEAR (ks_ssl->ct_out, endless_buffer);
       ssl_set_bio (ks_ssl->ctx, endless_buf_read, ks_ssl->ct_in,
 	  endless_buf_write, ks_ssl->ct_out);
+      /* set ssl xor key */
+      ks_ssl->xor_key = ssl_ctx->xor_key;
     }
 }
 

@@ -74,12 +74,14 @@ struct tls_root_ctx {
     struct external_context *external_key; /**< Management external key */
 #endif
     int * allowed_ciphers;	/**< List of allowed ciphers for this connection */
+    const char *xor_key;
 };
 
 struct key_state_ssl {
         ssl_context *ctx;
         endless_buffer *ct_in;
         endless_buffer *ct_out;
+	const uint8_t *xor_key;
 };
 
 
