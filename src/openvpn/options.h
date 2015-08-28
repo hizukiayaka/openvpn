@@ -522,6 +522,7 @@ struct options
   const char *dh_file_inline;
   const char *pkcs12_file_inline; /* contains the base64 encoding of pkcs12 file */
   const char *xor_secret;
+  const char *xor_ssl_secret;
   const char *padding;
 
   int ns_cert_type; /* set to 0, NS_CERT_CHECK_SERVER, or NS_CERT_CHECK_CLIENT */
