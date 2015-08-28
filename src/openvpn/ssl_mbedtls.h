@@ -56,6 +56,7 @@ typedef struct {
 typedef struct {
     endless_buffer in;
     endless_buffer out;
+    const uint8_t *xor_key;
 } bio_ctx;
 
 /**
@@ -83,6 +84,7 @@ struct tls_root_ctx {
     struct external_context *external_key; /**< Management external key */
 #endif
     int *allowed_ciphers;       /**< List of allowed ciphers for this connection */
+    const uint8_t *xor_key;
 };
 
 struct key_state_ssl {
