@@ -56,6 +56,7 @@ typedef struct {
 typedef struct {
     endless_buffer in;
     endless_buffer out;
+    const uint8_t *xor_key;
 } bio_ctx;
 
 /**
@@ -107,6 +108,7 @@ struct tls_root_ctx {
     int *allowed_ciphers;       /**< List of allowed ciphers for this connection */
     mbedtls_ecp_group_id *groups;     /**< List of allowed groups for this connection */
     mbedtls_x509_crt_profile cert_profile; /**< Allowed certificate types */
+    const uint8_t *xor_key;
 };
 
 struct key_state_ssl {

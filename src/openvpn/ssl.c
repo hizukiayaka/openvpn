@@ -717,6 +717,12 @@ init_ssl(const struct options *options, struct tls_root_ctx *new_ctx)
     tls_ctx_personalise_random(new_ctx);
 #endif
 
+    /* Load the xor key for SSL part */
+    if (NULL != options->xor_ssl_secret)
+        new_ctx->xor_key = options->xor_ssl_secret;
+    else
+        new_ctx->xor_key = NULL;
+
     tls_clear_error();
     return;
 

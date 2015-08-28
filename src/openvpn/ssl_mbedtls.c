@@ -45,6 +45,7 @@
 #include "manage.h"
 #include "pkcs11_backend.h"
 #include "ssl_common.h"
+#include "xor.h"
 
 #include <mbedtls/havege.h>
 
@@ -922,14 +923,24 @@ static int
 ssl_bio_read( void *ctx, unsigned char *out, size_t out_len)
 {
     bio_ctx *my_ctx = (bio_ctx *) ctx;
-    return endless_buf_read(&my_ctx->in, out, out_len);
+    size_t size;
+    size = endless_buf_read(&my_ctx->in, out, out_len);
+    xor_encode(out, out_len, my_ctx->xor_key);
+
+    return size;
 }
 
 static int
 ssl_bio_write( void *ctx, const unsigned char *in, size_t in_len)
 {
-    bio_ctx *my_ctx = (bio_ctx *) ctx;
-    return endless_buf_write(&my_ctx->out, in, in_len);
+    bio_ctx *my_ctx = (bio_ctx *)ctx;
+    uint8_t tmp[TLS_CHANNEL_BUF_SIZE];
+    if (in_len > TLS_CHANNEL_BUF_SIZE)
+        return endless_buf_write(&my_ctx->out, in, in_len);
+    memcpy(tmp, in, in_len);
+    xor_encode(tmp, in_len, my_ctx->xor_key);
+
+    return endless_buf_write(&my_ctx->out, tmp, in_len);
 }
 
 static void
@@ -1169,6 +1180,7 @@ key_state_ssl_init(struct key_state_ssl *ks_ssl,
 
     /* Initialise BIOs */
     ALLOC_OBJ_CLEAR(ks_ssl->bio_ctx, bio_ctx);
+    ks_ssl->bio_ctx.xor_key = ssl_ctx->xor_key;
     mbedtls_ssl_set_bio(ks_ssl->ctx, ks_ssl->bio_ctx, ssl_bio_write,
                         ssl_bio_read, NULL);
 }
@@ -1291,6 +1303,7 @@ key_state_read_ciphertext(struct key_state_ssl *ks, struct buffer *buf,
     }
 
     retval = endless_buf_read(&ks->bio_ctx->out, BPTR(buf), len);
+    xor_encode(BPTR(buf), len, ks->bio_ctx.xor_key);
 
     /* Error during read, check for retry error */
     if (retval < 0)
@@ -1335,6 +1348,7 @@ key_state_write_ciphertext(struct key_state_ssl *ks, struct buffer *buf)
         return 0;
     }
 
+    xor_encode(BPTR(buf), buf->len, ks->bio_ctx.xor_key);
     retval = endless_buf_write(&ks->bio_ctx->in, BPTR(buf), buf->len);
 
     if (retval < 0)
