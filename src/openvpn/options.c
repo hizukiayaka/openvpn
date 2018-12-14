@@ -8041,6 +8041,11 @@ add_option(struct options *options,
         VERIFY_PERMISSION(OPT_P_GENERAL);
         ssl_set_auth_nocache();
     }
+    else if (streq (p[0], "xor-secret") && p[1])
+    {
+        VERIFY_PERMISSION (OPT_P_GENERAL);
+        options->xor_secret = p[1];
+    }
     else if (streq(p[0], "auth-token") && p[1] && !p[2])
     {
         VERIFY_PERMISSION(OPT_P_ECHO);
