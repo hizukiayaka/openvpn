@@ -65,6 +65,7 @@
 #include <openssl/ec.h>
 #endif
 
+#include "xor.h"
 /*
  * Allocate space in SSL objects in which to store a struct tls_session
  * pointer back to parent.
@@ -1794,6 +1795,19 @@ bio_write(BIO *bio, const uint8_t *data, int size, const char *desc)
     return ret;
 }
 
+static int
+bio_write_xor (BIO *bio, const uint8_t *data, int size, const char *desc,
+		const char *xor_key)
+{
+	uint8_t tmp[TLS_CHANNEL_BUF_SIZE];
+
+	if (size > TLS_CHANNEL_BUF_SIZE)
+            return bio_write(bio, data, size, desc);
+
+	memcpy(tmp, data, size);
+	xor_encode(tmp, size, xor_key);
+	return bio_write(bio, tmp, size, desc);
+}
 /*
  * Inline functions for reading from and writing
  * to BIOs.
@@ -1868,6 +1882,17 @@ bio_read(BIO *bio, struct buffer *buf, int maxlen, const char *desc)
     return ret;
 }
 
+static int
+bio_read_xor (BIO *bio, struct buffer *buf, int maxlen, const char *desc,
+		const char *xor_key)
+{
+	int size;
+	size = bio_read(bio, buf, maxlen, desc);
+	xor_encode(BPTR(buf), BLEN(buf), xor_key);
+
+	return size;
+}
+
 void
 key_state_ssl_init(struct key_state_ssl *ks_ssl, const struct tls_root_ctx *ssl_ctx, bool is_server, struct tls_session *session)
 {
@@ -1888,6 +1913,9 @@ key_state_ssl_init(struct key_state_ssl *ks_ssl, const struct tls_root_ctx *ssl_
     ASSERT((ks_ssl->ssl_bio = BIO_new(BIO_f_ssl())));
     ASSERT((ks_ssl->ct_in = BIO_new(BIO_s_mem())));
     ASSERT((ks_ssl->ct_out = BIO_new(BIO_s_mem())));
+
+    /* set ssl xor key */
+    ks_ssl->xor_key = ssl_ctx->xor_key;
 
 #ifdef BIO_DEBUG
     bio_debug_oc("open ssl_bio", ks_ssl->ssl_bio);
@@ -1932,8 +1960,9 @@ key_state_write_plaintext(struct key_state_ssl *ks_ssl, struct buffer *buf)
 #ifdef ENABLE_CRYPTO_OPENSSL
     ASSERT(NULL != ks_ssl);
 
-    ret = bio_write(ks_ssl->ssl_bio, BPTR(buf), BLEN(buf),
-                    "tls_write_plaintext");
+    ret = bio_write_xor(ks_ssl->ssl_bio, BPTR(buf), BLEN(buf),
+                    "tls_write_plaintext",
+                    ks_ssl->xor_key);
     bio_write_post(ret, buf);
 #endif /* ENABLE_CRYPTO_OPENSSL */
 
@@ -1949,7 +1978,9 @@ key_state_write_plaintext_const(struct key_state_ssl *ks_ssl, const uint8_t *dat
 
     ASSERT(NULL != ks_ssl);
 
-    ret = bio_write(ks_ssl->ssl_bio, data, len, "tls_write_plaintext_const");
+    ret = bio_write_xor(ks_ssl->ssl_bio, data, len,
+                        "tls_write_plaintext_const",
+                        ks_ssl->xor_key);
 
     perf_pop();
     return ret;
@@ -1964,7 +1995,8 @@ key_state_read_ciphertext(struct key_state_ssl *ks_ssl, struct buffer *buf,
 
     ASSERT(NULL != ks_ssl);
 
-    ret = bio_read(ks_ssl->ct_out, buf, maxlen, "tls_read_ciphertext");
+    ret = bio_read_xor(ks_ssl->ct_out, buf, maxlen, "tls_read_ciphertext",
+                       ks_ssl->xor_key);
 
     perf_pop();
     return ret;
@@ -1978,7 +2010,8 @@ key_state_write_ciphertext(struct key_state_ssl *ks_ssl, struct buffer *buf)
 
     ASSERT(NULL != ks_ssl);
 
-    ret = bio_write(ks_ssl->ct_in, BPTR(buf), BLEN(buf), "tls_write_ciphertext");
+    ret = bio_write_xor(ks_ssl->ct_in, BPTR(buf), BLEN(buf),
+                        "tls_write_ciphertext", ks_ssl->xor_key);
     bio_write_post(ret, buf);
 
     perf_pop();
@@ -1994,7 +2027,8 @@ key_state_read_plaintext(struct key_state_ssl *ks_ssl, struct buffer *buf,
 
     ASSERT(NULL != ks_ssl);
 
-    ret = bio_read(ks_ssl->ssl_bio, buf, maxlen, "tls_read_plaintext");
+    ret = bio_read_xor(ks_ssl->ssl_bio, buf, maxlen, "tls_read_plaintext",
+                       ks_ssl->xor_key);
 
     perf_pop();
     return ret;

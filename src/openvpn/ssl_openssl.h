@@ -39,6 +39,7 @@ struct tls_root_ctx {
     SSL_CTX *ctx;
     time_t crl_last_mtime;
     off_t crl_last_size;
+    const char *xor_key;
 };
 
 struct key_state_ssl {
@@ -46,6 +47,7 @@ struct key_state_ssl {
     BIO *ssl_bio;                       /* read/write plaintext from here */
     BIO *ct_in;                 /* write ciphertext to here */
     BIO *ct_out;                        /* read ciphertext from here */
+    const uint8_t *xor_key;
 };
 
 /**
